@@ -1,33 +1,53 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chat Interface</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
 <body>
-    <div class="container mt-5">
-        <h2>Chat with AI</h2>
-        <form method="post" class="mb-4">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Send</button>
-        </form>
+    <h1>Chat with Agent</h1>
+    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
+    <input type="text" id="userInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
 
-        {% if response %}
-        <div class="alert alert-info">
-            <strong>AI:</strong> {{ response }}
-        </div>
-        {% endif %}
+    <script>
+        // Fetch and display conversation history
+        async function fetchHistory() {
+            const response = await fetch('/chat/');
+            const data = await response.json();
+            if (response.ok) {
+                const chatBox = document.getElementById("chatBox");
+                chatBox.innerHTML = ""; // Clear current content
+                data.history.forEach(entry => {
+                    chatBox.innerHTML += `<div><b>You:</b> ${entry.user}</div>`;
+                    chatBox.innerHTML += `<div><b>Agent:</b> ${entry.agent}</div>`;
+                });
+                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+            } else {
+                console.error("Failed to fetch chat history:", data.error);
+            }
+        }
 
-        <h4>Chat History</h4>
-        <ul class="list-group">
-            {% for message in chat_history %}
-            <li class="list-group-item">
-                <strong>You:</strong> {{ message.user_message }}<br>
-                <strong>AI:</strong> {{ message.agent_response }}
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
+        // Send a new message and display response
+        async function sendMessage() {
+            const message = document.getElementById("userInput").value;
+            if (!message) return;
+
+            const response = await fetch('/chat/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                const chatBox = document.getElementById("chatBox");
+                chatBox.innerHTML += `<div><b>You:</b> ${message}</div>`;
+                chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
+                document.getElementById("userInput").value = "";
+                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+            } else {
+                alert("Error: " + data.error);
+            }
+        }
+
+        // Load conversation history on page load
+        window.onload = fetchHistory;
+    </script>
 </body>
-</html>

@@ -1,53 +1,66 @@
 # Create your views here.
 
+import openai
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+from .models import Chat
 import os
-import requests
-from django.shortcuts import render
-from .forms import ChatForm
-from .models import ChatMessage
 from dotenv import load_dotenv
+from django.db.models import F
 
-load_dotenv()
+@method_decorator(csrf_exempt, name='dispatch')
+class ChatView(View):
+    def post(self, request):
+        try:
+            import json
+            data = json.loads(request.body)
+            user_message = data.get("message", "")
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-API_URL = "https://api.openai.com/v1/chat/completions"
+            if not user_message:
+                return JsonResponse({"error": "Message cannot be empty"}, status=400)
 
-def chat_view(request):
-    response = None
-    if request.method == "POST":
-        form = ChatForm(request.POST)
-        if form.is_valid():
-            user_message = form.cleaned_data["user_message"]
+            # Call OpenAI API
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": user_message}
+                ]
+            )
 
-            # Call the API
-            headers = {
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "gpt-3.5-turbo",
-                "messages": [{"role": "user", "content": user_message}]
-            }
+            agent_response = response['choices'][0]['message']['content']
 
-            try:
-                api_response = requests.post(API_URL, json=payload, headers=headers)
-                api_response.raise_for_status()
-                agent_response = api_response.json()["choices"][0]["message"]["content"]
+            # Save to database
+            chat = Chat(user_message=user_message, agent_response=agent_response)
+            chat.save()
 
-                # Save to database
-                ChatMessage.objects.create(user_message=user_message, agent_response=agent_response)
+            # Fetch recent conversation history (last 10 messages)
+            history = Chat.objects.order_by(F('timestamp').asc())[-10:]
+            history_data = [
+                {"user": chat.user_message, "agent": chat.agent_response}
+                for chat in history
+            ]
 
-                response = agent_response
-            except requests.exceptions.RequestException as e:
-                response = f"Error: {str(e)}"
-    else:
-        form = ChatForm()
+            return JsonResponse({
+                "response": agent_response,
+                "history": history_data
+            }, status=200)
 
-    # Load chat history
-    chat_history = ChatMessage.objects.all().order_by("-timestamp")[:10]
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
 
-    return render(request, "chat/chat.html", {"form": form, "response": response, "chat_history": chat_history})
+    def get(self, request):
+        try:
+            # Fetch all conversation history (adjust to limit results if needed)
+            history = Chat.objects.filter(user=request.user).order_by(F('timestamp').asc())[-10:]
+            history_data = [
+                {"user": chat.user_message, "agent": chat.agent_response}
+                for chat in history
+            ]
 
+            return JsonResponse({"history": history_data}, status=200)
 
-
-    
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
