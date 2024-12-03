@@ -1,37 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="{% static 'chat/style.css' %}">
+</head>
 <body>
-    <h1>Chat with Agent</h1>
+    <nav class="navbar">
+        <div class="logo">
+            <img src="{% static 'chat/images/space_dog.png' %}" alt="Space Dog Logo">
+        </div>
+        <div class="nav-links">
+            <a href="/logout/" class="btn-logout">Log Out</a>
+        </div>
+    </nav>
+
     <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
     <input type="text" id="userInput" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
 
     <script>
-        // Fetch and display conversation history
         async function fetchHistory() {
             const response = await fetch('/chat/');
             const data = await response.json();
             if (response.ok) {
                 const chatBox = document.getElementById("chatBox");
                 chatBox.innerHTML = ""; // Clear current content
-                data.history.forEach(entry => {
+                data.history.reverse().forEach(entry => {
                     chatBox.innerHTML += `<div><b>You:</b> ${entry.user}</div>`;
                     chatBox.innerHTML += `<div><b>Agent:</b> ${entry.agent}</div>`;
                 });
                 chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
-            } else {
-                console.error("Failed to fetch chat history:", data.error);
             }
         }
 
-        // Send a new message and display response
         async function sendMessage() {
             const message = document.getElementById("userInput").value;
             if (!message) return;
 
             const response = await fetch('/chat/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message })
             });
 
@@ -42,12 +52,10 @@
                 chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
                 document.getElementById("userInput").value = "";
                 chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
-            } else {
-                alert("Error: " + data.error);
             }
         }
 
-        // Load conversation history on page load
         window.onload = fetchHistory;
     </script>
 </body>
+</html>

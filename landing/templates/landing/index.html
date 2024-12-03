@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Language Buddy</title>
+    <link rel="stylesheet" href="{% static 'landing/style.css' %}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <img src="{% static 'landing/images/space_dog.png' %}" alt="Space Dog Logo">
+        </div>
+        <div class="nav-links">
+            <a href="/login/" class="btn-login">Log In</a>
+        </div>
+    </nav>
+
+    <!-- Landing Page Content -->
+    <div class="landing-content">
+        <h1>Welcome to Language Buddy</h1>
+        <a href="/register/" class="btn-register">Register</a>
+    </div>
+</body>
+</html>
