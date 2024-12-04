@@ -21,8 +21,16 @@ GREETING_QUESTIONS = [
 @method_decorator(login_required, name='dispatch')
 class ChatView(View):
     def get(self, request):
-        """Fetch the last 10 chat messages."""
+        """Fetch chat messages or provide an initial greeting."""
         history = Chat.objects.filter(user=request.user).order_by('-timestamp')[:10]
+        
+        if not history:  # No chat history for the user
+            initial_greeting = [
+                {"user": None, "agent": f"Hello, {request.user.first_name}! How can I assist you today?"}
+            ]
+            return JsonResponse({"history": initial_greeting}, status=200)
+        
+        # Otherwise, return the existing chat history
         history_data = [
             {"user": chat.user_message, "agent": chat.agent_response}
             for chat in history
