@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Language Buddy</title>
+    <link rel="stylesheet" href="{% static 'registration/style.css' %}">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <img src="{% static 'landing/images/space_dog.png' %}" alt="Space Dog Logo">
+        </div>
+        <div class="nav-links">
+            <a href="/login/" class="btn-login">Log In</a>
+        </div>
+    </nav>
+
+    <!-- Registration Form -->
+    <header>
+        <h1>Register for Language Buddy</h1>
+    </header>
+    <div class="form-container">
+        <form method="POST" action="">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn-register">Complete Registration</button>
+        </form>
+    </div>
+</body>
+</html>
