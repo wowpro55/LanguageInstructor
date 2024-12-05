@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
@@ -16,32 +17,65 @@
         </div>
     </nav>
 
-    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
+    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;">
+        <div><b>Agent:</b> {{ greeting }}</div>
+    </div>
+
+    <!-- Chat input field and send button -->
     <input type="text" id="userInput" placeholder="Type your message..." />
     <button onclick="sendMessage()">Send</button>
 
     <script>
+        // Function to get CSRF token from the cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Check if this cookie string begins with the name we want
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Fetch history or greeting when the page loads
         async function fetchHistory() {
             const response = await fetch('/chat/');
             const data = await response.json();
+
             if (response.ok) {
                 const chatBox = document.getElementById("chatBox");
                 chatBox.innerHTML = ""; // Clear current content
-                data.history.reverse().forEach(entry => {
-                    chatBox.innerHTML += `<div><b>You:</b> ${entry.user}</div>`;
-                    chatBox.innerHTML += `<div><b>Agent:</b> ${entry.agent}</div>`;
-                });
-                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+
+                // If no history, display the greeting
+                if (data.history && data.history.length === 0) {
+                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.greeting}</div>`;
+                }
+
+                // Scroll to the bottom to show the latest message
+                chatBox.scrollTop = chatBox.scrollHeight;
             }
         }
 
+        // Function to send the message
         async function sendMessage() {
             const message = document.getElementById("userInput").value;
             if (!message) return;
 
+            // Get CSRF token from cookie
+            const csrfToken = getCookie('csrftoken');
+
             const response = await fetch('/chat/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // Send CSRF token in the header
+                },
                 body: JSON.stringify({ message })
             });
 
@@ -55,7 +89,7 @@
             }
         }
 
-        window.onload = fetchHistory;
+        window.onload = fetchHistory; // Fetch history or greeting when the page loads
     </script>
 </body>
 </html>
