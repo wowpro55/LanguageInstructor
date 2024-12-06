@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'landing',
     'registration',
     'login',
+    'core',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -129,3 +130,69 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+#Custom configuration to handle error logs
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
+        },
+    },
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
+        },
+    },
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "filters": ["require_debug_true"],
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "db_handler": {
+            "level": "ERROR",
+            "class": "languagetutor.logging.DBLogHandler",  # Adjusted the path
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "db_handler"],  # Include the DB handler
+            "propagate": True,
+        },
+        "django.request": {
+            "handlers": ["db_handler"],  # Only log to the DB
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "languagetutor.custom": {  # Custom logger with DB handler
+            "handlers": ["console", "db_handler"],
+            "level": "INFO",
+        },
+    },
+}
+
+
+ADMINS = [
+    ('Kerstin Bachmann', 'languagetutorAPP@web.de')
+]
+
+# Email backend configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.web.de'  #
+EMAIL_PORT = 587  
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'languagetutorAPP@web.de'
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_USE_LOCALTIME = True
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = 'languagetutorAPP@web.de'  
