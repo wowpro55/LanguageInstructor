@@ -17,16 +17,23 @@
             <a href="/register/" class="btn-register">Register</a>
         </div>
     </nav>
+    
 
     <!-- Log-In Form -->
     <header>
         <h1>Log In to Language Buddy</h1>
     </header>
     <div class="form-container">
-        <form method="POST" action="">
+        <form method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn-login">Log In</button>
+            {{ form.non_field_errors }}
+            <div>
+                {{ form.username.label_tag }} {{ form.username }}
+            </div>
+            <div>
+                {{ form.password.label_tag }} {{ form.password }}
+            </div>
+            <button type="submit">Login</button>
         </form>
     </div>
 </body>

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from decouple import config
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,25 +22,68 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^&xq&19e-(4^=@0#^+tl#8p5rmb64n@x+8avryl+l1_mrg6%%9'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+SECRET_KEY = config('SECRET_KEY')
 
 # Load OpenAI API Key
 OPENAI_API_KEY = config('OPENAI_API_KEY')
 
+#SECURITY SETTINGS
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+# Only enable these settings in production
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+    CSRF_COOKIE_HTTPONLY = True
+
+#Session and cookie settings
+SESSION_COOKIE_SECURE = True  # Ensures the session cookie is only sent over HTTPS
+CSRF_COOKIE_SECURE = True     # Ensures the CSRF cookie is only sent over HTTPS
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when the browser is closed
+CSRF_COOKIE_HTTPONLY = True   # Prevent CSRF cookie from being accessed by JavaScript
+
+#Define when moving to production
+ALLOWED_HOSTS = []
+
+#Security middleware
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'  # Prevent embedding your site in iframes
+
+# Authentication settings
+LOGIN_URL = "/login/"  # URL to redirect to for login
+LOGIN_REDIRECT_URL = "/chat/"  # Default redirect after successful login
+LOGOUT_REDIRECT_URL = "/login/"  # Redirect after logout
+
+# Axes settings 
+AXES_FAILURE_LIMIT = 3  # Limit of failed attempts before lockout
+AXES_COOLOFF_TIME = timedelta(seconds=120)  # Time in minutes before user can attempt again after lockout
+AXES_LOCKOUT_URL = '/login/lockout/'
+AXES_LOCKOUT_TEMPLATE = 'login/lockout.html'  # Template to show on lockout
+# Enforce user-based lockouts only
+AXES_USERNAME_FORM_FIELD = 'username'  # Field to track user login attempts
+AXES_FAILURE_LIMIT_PER_IP = False  # Disable IP-based lockouts
+AXES_FAILURE_LIMIT_PER_USER_AND_IP = False  # Disable user-and-IP-based lockouts
+AXES_FAILURE_LIMIT_PER_USER = True  # Enforce failure limit on a per-user basis
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',  # Default backend
+    'axes.backends.AxesStandaloneBackend',        # Add this line
+)
+
+
 
 # Application definition
-
 INSTALLED_APPS = [
     'chat',
     'landing',
     'registration',
     'login',
     'core',
+    'axes',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -56,7 +100,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 ROOT_URLCONF = 'languagetutor.urls'
 

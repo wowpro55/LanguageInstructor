@@ -32,3 +32,16 @@ button.btn-login {
 button.btn-login:hover {
     background-color: #0056b3;
 }
+
+button.btn-logout {
+    background-color: #dc3545; /* Red color for logout */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button.btn-logout:hover {
+    background-color: #c82333;
+}

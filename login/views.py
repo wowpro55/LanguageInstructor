@@ -1,24 +1,34 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
+from django.shortcuts import redirect
 from django.contrib import messages
 from .forms import UserLoginForm
+from django.contrib.auth import logout
+from django.views import View
+from django.contrib.auth.views import LoginView
+from django.urls import reverse_lazy
 
-def user_login(request):
-    if request.method == "POST":
-        form = UserLoginForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data.get("username")
-            password = form.cleaned_data.get("password")
 
-            # Authenticate the user using the username field
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                login(request, user)
-                return redirect("/chat/")  # Redirect to the chat page
-            else:
-                messages.error(request, "Invalid username or password.")
+class CustomLoginView(LoginView):
+    template_name = "login/login.html"
+    redirect_authenticated_user = True  # Redirect already logged-in users
+    authentication_form = UserLoginForm  # Use your custom login form
+    success_url = reverse_lazy("chat")  # Redirect to the chat page on success
 
-    else:
-        form = UserLoginForm()
+    def form_invalid(self, form):
+        # Add custom error messages if needed
+        messages.error(self.request, "Invalid username or password.")
+        return super().form_invalid(form)
 
-    return render(request, "login/login.html", {"form": form})
+class LogoutView(View):
+    def get(self, request):
+        """Logs out the user and redirects them to the landing page."""
+        logout(request)
+        return redirect('landing_page')
+    
+
+from axes.signals import user_locked_out
+from django.dispatch import receiver
+
+@receiver(user_locked_out)
+def handle_lockout(sender, request, username, **kwargs):
+    print(f"User {username} has been locked out.")
+
