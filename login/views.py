@@ -25,10 +25,4 @@ class LogoutView(View):
         return redirect('landing_page')
     
 
-from axes.signals import user_locked_out
-from django.dispatch import receiver
-
-@receiver(user_locked_out)
-def handle_lockout(sender, request, username, **kwargs):
-    print(f"User {username} has been locked out.")
 

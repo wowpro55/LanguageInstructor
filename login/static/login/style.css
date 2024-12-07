@@ -45,3 +45,15 @@ button.btn-logout {
 button.btn-logout:hover {
     background-color: #c82333;
 }
+
+.forgot-password {
+    margin-top: 10px;
+    text-align: center;
+}
+.forgot-password a {
+    text-decoration: none;
+    color: #007bff;
+}
+.forgot-password a:hover {
+    text-decoration: underline;
+}
