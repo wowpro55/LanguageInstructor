@@ -17,13 +17,21 @@
         </div>
     </nav>
 
-    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;">
+    <!-- Chat History Container -->
+    <div id="chatBox" class="chat-box">
         <div><b>Agent:</b> {{ greeting }}</div>
     </div>
 
-    <!-- Chat input field and send button -->
-    <input type="text" id="userInput" placeholder="Type your message..." />
-    <button onclick="sendMessage()">Send</button>
+    <!-- User Input Field -->
+    <div class="chat-controls">
+        <input type="text" id="userInput" class="chat-input" placeholder="Type your message..." />
+        <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div id="typingIndicator" style="display: none;">
+        <em>Agent is typing...</em>
+    </div>
 
     <script>
         // Function to get CSRF token from the cookie
@@ -33,7 +41,6 @@
                 const cookies = document.cookie.split(';');
                 for (let i = 0; i < cookies.length; i++) {
                     const cookie = cookies[i].trim();
-                    // Check if this cookie string begins with the name we want
                     if (cookie.substring(0, name.length + 1) === (name + '=')) {
                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                         break;
@@ -43,53 +50,88 @@
             return cookieValue;
         }
 
-        // Fetch history or greeting when the page loads
-        async function fetchHistory() {
-            const response = await fetch('/chat/');
-            const data = await response.json();
+        // Chatbox and Timeout Variables
+        let timeout; // Timeout for inactivity
+        const inactivityTime = 15000; // 15 seconds of inactivity
+        const chatBox = document.getElementById("chatBox");
+        const typingIndicator = document.getElementById("typingIndicator");
 
-            if (response.ok) {
-                const chatBox = document.getElementById("chatBox");
-                chatBox.innerHTML = ""; // Clear current content
-
-                // If no history, display the greeting
-                if (data.history && data.history.length === 0) {
-                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.greeting}</div>`;
-                }
-
-                // Scroll to the bottom to show the latest message
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        }
-
-        // Function to send the message
+        // Function to send a message
         async function sendMessage() {
-            const message = document.getElementById("userInput").value;
-            if (!message) return;
+            const messageInput = document.getElementById("userInput");
+            const message = messageInput.value.trim();
+            if (!message) {
+                alert("Please enter a message.");
+                return;
+            }
 
-            // Get CSRF token from cookie
             const csrfToken = getCookie('csrftoken');
+            typingIndicator.style.display = "block"; // Show "typing..." indicator
 
-            const response = await fetch('/chat/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken // Send CSRF token in the header
-                },
-                body: JSON.stringify({ message })
-            });
+            try {
+                const response = await fetch('/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ message })
+                });
 
-            const data = await response.json();
-            if (response.ok) {
-                const chatBox = document.getElementById("chatBox");
-                chatBox.innerHTML += `<div><b>You:</b> ${message}</div>`;
-                chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
-                document.getElementById("userInput").value = "";
-                chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to bottom
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Add user message and chatbot response to the chatbox
+                    chatBox.innerHTML += `<div><b>You:</b> ${message}</div>`;
+                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
+                    messageInput.value = ""; // Clear input field
+                    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+                } else {
+                    console.error("Failed response:", data);
+                    alert(data.error || "Failed to send the message. Please try again.");
+                }
+            } catch (error) {
+                console.error("Error sending message:", error);
+                alert("An unexpected error occurred. Please try again later.");
+            } finally {
+                typingIndicator.style.display = "none"; // Hide "typing..." indicator
+                resetInactivityTimer(); // Reset inactivity timer
             }
         }
 
-        window.onload = fetchHistory; // Fetch history or greeting when the page loads
+        // Function to handle inactivity timeout
+        async function handleInactivity() {
+            const csrfToken = getCookie('csrftoken');
+            try {
+                const response = await fetch('/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ message: "timeout" }) // Timeout trigger message
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // Add chatbot's proactive response to the chatbox
+                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
+                    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+                }
+            } catch (error) {
+                console.error("Error handling inactivity:", error);
+            }
+        }
+
+        // Reset inactivity timer
+        function resetInactivityTimer() {
+            clearTimeout(timeout);
+            timeout = setTimeout(handleInactivity, inactivityTime); // Trigger after 15 seconds
+        }
+
+        // Add event listeners
+        document.getElementById("userInput").addEventListener("keypress", resetInactivityTimer);
+        window.onload = resetInactivityTimer; // Start inactivity timer on page load
     </script>
 </body>
 </html>

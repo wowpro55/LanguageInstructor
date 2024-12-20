@@ -40,10 +40,10 @@ if not DEBUG:
     CSRF_COOKIE_HTTPONLY = True
 
 #Session and cookie settings
-SESSION_COOKIE_SECURE = True  # Ensures the session cookie is only sent over HTTPS
-CSRF_COOKIE_SECURE = True     # Ensures the CSRF cookie is only sent over HTTPS
+SESSION_COOKIE_SECURE = False  # Ensures the session cookie is only sent over HTTPS
+CSRF_COOKIE_SECURE = False    # Ensures the CSRF cookie is only sent over HTTPS
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when the browser is closed
-CSRF_COOKIE_HTTPONLY = True   # Prevent CSRF cookie from being accessed by JavaScript
+CSRF_COOKIE_HTTPONLY = False   # Prevent CSRF cookie from being accessed by JavaScript
 
 #Define when moving to production
 ALLOWED_HOSTS = []
@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_ratelimit',
 ]
 
 MIDDLEWARE = [
@@ -195,7 +196,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} {module} {message}",
             "style": "{",
         },
         "simple": {
@@ -203,40 +204,57 @@ LOGGING = {
             "style": "{",
         },
     },
-    "filters": {
-        "require_debug_true": {
-            "()": "django.utils.log.RequireDebugTrue",
-        },
-    },
     "handlers": {
         "console": {
-            "level": "INFO",
-            "filters": ["require_debug_true"],
+            "level": "INFO",  # Only show INFO or higher logs in the console
             "class": "logging.StreamHandler",
-            "formatter": "simple",
+            "formatter": "verbose",
         },
         "db_handler": {
             "level": "ERROR",
-            "class": "languagetutor.logging.DBLogHandler",  # Adjusted the path
+            "class": "languagetutor.logging.DBLogHandler",
             "formatter": "verbose",
         },
     },
     "loggers": {
+        # General Django logging
         "django": {
-            "handlers": ["console", "db_handler"],  # Include the DB handler
+            "handlers": ["console"],
+            "level": "INFO",  # Limit general Django logs to INFO level
             "propagate": True,
         },
+        # Specific Django request logging
         "django.request": {
-            "handlers": ["db_handler"],  # Only log to the DB
-            "level": "ERROR",
+            "handlers": ["console", "db_handler"],
+            "level": "WARNING",  # Log only warnings or higher
             "propagate": False,
         },
-        "languagetutor.custom": {  # Custom logger with DB handler
+        # Custom logger for your app
+        "languagetutor.custom": {
             "handlers": ["console", "db_handler"],
-            "level": "INFO",
+            "level": "DEBUG",  # Keep DEBUG logs for your app
+            "propagate": False,
+        },
+        # CSRF-specific logging
+        "django.security.csrf": {
+            "handlers": ["console"],
+            "level": "DEBUG",  # Enable detailed CSRF logs
+            "propagate": False,
         },
     },
 }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',  # Change host/port as needed
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+
 
 
 ADMINS = [

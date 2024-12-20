@@ -1,0 +1,19 @@
+scenario,persona,difficulty_level
+Open Chat,Friend,A1
+Open Chat,Friend,A2
+Open Chat,Friend,B1
+Open Chat,Friend,B2
+Open Chat,Friend,C1
+Open Chat,Friend,C2
+Open Chat,Neighbor,A1
+Open Chat,Neighbor,A2
+Open Chat,Neighbor,B1
+Open Chat,Neighbor,B2
+Open Chat,Neighbor,C1
+Open Chat,Neighbor,C2
+Open Chat,Colleague,A1
+Open Chat,Colleague,A2
+Open Chat,Colleague,B1
+Open Chat,Colleague,B2
+Open Chat,Colleague,C1
+Open Chat,Colleague,C2
