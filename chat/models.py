@@ -22,10 +22,10 @@ class DifficultyLevel(models.Model):
     def load_vocabulary(self):
         """Load vocabulary words from the referenced file (supports JSON and CSV)."""
         if not self.vocabulary_file_path:
-            return []  # Return an empty list if no file path is provided
+            return []  
 
         if not os.path.exists(self.vocabulary_file_path):
-            return []  # Return an empty list if the file doesn't exist
+            return []  
 
         try:
             file_extension = os.path.splitext(self.vocabulary_file_path)[1].lower()
@@ -34,20 +34,18 @@ class DifficultyLevel(models.Model):
                 # Load vocabulary from JSON file
                 with open(self.vocabulary_file_path, "r") as file:
                     data = json.load(file)
-                    return data.get("words", [])  # Extract "words" key
+                    return data.get("words", [])  
 
             elif file_extension == ".csv":
                 # Load vocabulary from CSV file
                 with open(self.vocabulary_file_path, "r") as file:
                     reader = csv.reader(file)
-                    return [row[0] for row in reader if row]  # Extract first column
+                    return [row[0] for row in reader if row]  
 
             else:
-                # Unsupported file type
                 return []
 
         except Exception as e:
-            # Handle any error during file reading
             return []
 
 class ChatFormalityLevel(models.Model):

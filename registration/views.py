@@ -14,15 +14,12 @@ def register(request):
     if request.method == "POST":
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            # Save the user without committing it to the database yet
             user = form.save(commit=False)
             
-            # Hash the password
             user.set_password(form.cleaned_data["password"])
             
             # Make the user inactive until they verify their email
-            user.is_active = False  # Ensure the user is not active until email is confirmed
-            user.save()
+            user.is_active = False  
 
             # Send the verification email
             send_verification_email(user, request)
@@ -30,9 +27,7 @@ def register(request):
             # Inform the user that a verification email has been sent
             messages.success(request, "A verification email has been sent. Please check your inbox to activate your account.")
 
-            # Redirect to the login page or inform the user to check their email
-            return redirect('/login/')  # You can change this to whatever page you'd like, such as '/login/'
-
+            return redirect('/login/') 
     else:
         form = UserRegistrationForm()
 

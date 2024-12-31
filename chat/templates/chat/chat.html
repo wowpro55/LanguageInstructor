@@ -8,10 +8,8 @@
     <link rel="stylesheet" href="{% static 'chat/style.css' %}">
 </head>
 <body>
+    <!-- Navigation Bar -->
     <nav class="navbar">
-        <div class="logo">
-            <img src="{% static 'chat/images/space_dog.png' %}" alt="Space Dog Logo">
-        </div>
         <div class="nav-links">
             <a href="{% url 'logout' %}" class="btn-logout">Logout</a>
         </div>
@@ -24,8 +22,11 @@
 
     <!-- User Input Field -->
     <div class="chat-controls">
-        <input type="text" id="userInput" class="chat-input" placeholder="Type your message..." />
-        <button class="chat-send-btn" onclick="sendMessage()">Send</button>
+        <form id="chatForm" method="POST" onsubmit="return false;">
+            {% csrf_token %}
+            <input type="text" id="userInput" class="chat-input" placeholder="Type your message..." />
+            <button type="button" class="chat-send-btn">Send</button>
+        </form>
     </div>
 
     <!-- Typing Indicator -->
@@ -34,104 +35,76 @@
     </div>
 
     <script>
-        // Function to get CSRF token from the cookie
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        // Chatbox and Timeout Variables
-        let timeout; // Timeout for inactivity
-        const inactivityTime = 15000; // 15 seconds of inactivity
-        const chatBox = document.getElementById("chatBox");
-        const typingIndicator = document.getElementById("typingIndicator");
-
-        // Function to send a message
-        async function sendMessage() {
-            const messageInput = document.getElementById("userInput");
-            const message = messageInput.value.trim();
-            if (!message) {
-                alert("Please enter a message.");
+        document.addEventListener("DOMContentLoaded", function () {
+            const userInputElement = document.getElementById("userInput");
+            const chatBox = document.getElementById("chatBox");
+            const typingIndicator = document.getElementById("typingIndicator");
+            const sendButton = document.querySelector(".chat-send-btn");
+    
+            // Ensure CSRF token exists
+            const csrfTokenElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (!csrfTokenElement) {
+                console.error('CSRF token not found in the DOM. Ensure {% csrf_token %} is present in the form.');
                 return;
             }
+            const csrfToken = csrfTokenElement.value;
+    
+            async function sendMessage() {
 
-            const csrfToken = getCookie('csrftoken');
-            typingIndicator.style.display = "block"; // Show "typing..." indicator
-
-            try {
-                const response = await fetch('/chat/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ message })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Add user message and chatbot response to the chatbox
-                    chatBox.innerHTML += `<div><b>You:</b> ${message}</div>`;
-                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
-                    messageInput.value = ""; // Clear input field
-                    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-                } else {
-                    console.error("Failed response:", data);
-                    alert(data.error || "Failed to send the message. Please try again.");
+                const userInput = userInputElement.value.trim();
+                if (!userInput) {
+                    alert("Please type a message before sending.");
+                    return;
                 }
-            } catch (error) {
-                console.error("Error sending message:", error);
-                alert("An unexpected error occurred. Please try again later.");
-            } finally {
-                typingIndicator.style.display = "none"; // Hide "typing..." indicator
-                resetInactivityTimer(); // Reset inactivity timer
-            }
-        }
 
-        // Function to handle inactivity timeout
-        async function handleInactivity() {
-            const csrfToken = getCookie('csrftoken');
-            try {
-                const response = await fetch('/chat/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ message: "timeout" }) // Timeout trigger message
-                });
+                userInputElement.value = "";
 
-                const data = await response.json();
-                if (response.ok) {
-                    // Add chatbot's proactive response to the chatbox
-                    chatBox.innerHTML += `<div><b>Agent:</b> ${data.response}</div>`;
-                    chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+                const userMessageDiv = document.createElement("div");
+                userMessageDiv.innerHTML = `<b>You:</b> ${userInput}`;
+                chatBox.appendChild(userMessageDiv);
+
+                chatBox.scrollTop = chatBox.scrollHeight;
+                typingIndicator.style.display = "block";
+
+                try {
+                    console.log("Sending fetch request...");
+
+                    console.log("Sending message to:", "{% url 'chat' %}");
+                    console.log("CSRF Token:", csrfToken);
+                    
+                    const response = await fetch("{% url 'chat' %}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": csrfToken
+                        },
+                        body: JSON.stringify({ message: userInput }) 
+                    }); 
+
+                    typingIndicator.style.display = "none"; 
+
+                    if (!response.ok) {
+                        throw new Error("Failed to send message.");
+                    }
+
+                    const data = await response.json();
+                    const botMessageDiv = document.createElement("div");
+                    botMessageDiv.innerHTML = `<b>Agent:</b> ${data.response}`;
+                    chatBox.appendChild(botMessageDiv);
+
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                } catch (error) {
+                    typingIndicator.style.display = "none";
+                    console.error("Error:", error);
+                    const errorDiv = document.createElement("div");
+                    errorDiv.innerHTML = `<b>Error:</b> Failed to send your message. Please try again.`;
+                    chatBox.appendChild(errorDiv);
                 }
-            } catch (error) {
-                console.error("Error handling inactivity:", error);
             }
-        }
-
-        // Reset inactivity timer
-        function resetInactivityTimer() {
-            clearTimeout(timeout);
-            timeout = setTimeout(handleInactivity, inactivityTime); // Trigger after 15 seconds
-        }
-
-        // Add event listeners
-        document.getElementById("userInput").addEventListener("keypress", resetInactivityTimer);
-        window.onload = resetInactivityTimer; // Start inactivity timer on page load
-    </script>
+    
+        
+            sendButton.addEventListener("click", sendMessage);
+        });
+    </script>    
 </body>
 </html>

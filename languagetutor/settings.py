@@ -40,12 +40,15 @@ if not DEBUG:
     CSRF_COOKIE_HTTPONLY = True
 
 #Session and cookie settings
-SESSION_COOKIE_SECURE = False  # Ensures the session cookie is only sent over HTTPS
-CSRF_COOKIE_SECURE = False    # Ensures the CSRF cookie is only sent over HTTPS
+SESSION_COOKIE_SECURE = False 
+CSRF_COOKIE_SECURE = False    
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when the browser is closed
 CSRF_COOKIE_HTTPONLY = False   # Prevent CSRF cookie from being accessed by JavaScript
+SESSION_COOKIE_AGE = 3600  # Set session timeout in seconds
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # This uses SQLite database for sessions
 
-#Define when moving to production
+
+#Define when moving to production!!!
 ALLOWED_HOSTS = []
 
 #Security middleware
@@ -55,14 +58,14 @@ X_FRAME_OPTIONS = 'DENY'  # Prevent embedding your site in iframes
 
 # Authentication settings
 LOGIN_URL = "/login/"  # URL to redirect to for login
-LOGIN_REDIRECT_URL = "/chat/"  # Default redirect after successful login
-LOGOUT_REDIRECT_URL = "/login/"  # Redirect after logout
+LOGIN_REDIRECT_URL = "/landing/"  #redirect after successful login
+LOGOUT_REDIRECT_URL = ""  # Redirect after logout
 
 # Axes settings 
-AXES_FAILURE_LIMIT = 3  # Limit of failed attempts before lockout
-AXES_COOLOFF_TIME = timedelta(seconds=120)  # Time in minutes before user can attempt again after lockout
+AXES_FAILURE_LIMIT = 20  # Limit of failed attempts before lockout
+AXES_COOLOFF_TIME = timedelta(seconds=1)  # Time in minutes before user can attempt again after lockout
 AXES_LOCKOUT_URL = '/login/lockout/'
-AXES_LOCKOUT_TEMPLATE = 'login/lockout.html'  # Template to show on lockout
+AXES_LOCKOUT_TEMPLATE = 'login/lockout.html'  
 # Enforce user-based lockouts only
 AXES_USERNAME_FORM_FIELD = 'username'  # Field to track user login attempts
 AXES_FAILURE_LIMIT_PER_IP = False  # Disable IP-based lockouts
@@ -71,15 +74,14 @@ AXES_FAILURE_LIMIT_PER_USER = True  # Enforce failure limit on a per-user basis
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',  # Default backend
-    'axes.backends.AxesStandaloneBackend',        # Add this line
+    'axes.backends.AxesStandaloneBackend',       
 )
-
-
 
 # Application definition
 INSTALLED_APPS = [
+    'landing_page',
     'chat',
-    'landing',
+    'welcome_page',
     'registration',
     'login',
     'core',
@@ -189,8 +191,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#Custom configuration to handle error logs
-
+#Custom config to handle error logs
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -206,7 +207,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO",  # Only show INFO or higher logs in the console
+            "level": "INFO",  
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
@@ -217,45 +218,34 @@ LOGGING = {
         },
     },
     "loggers": {
-        # General Django logging
         "django": {
             "handlers": ["console"],
-            "level": "INFO",  # Limit general Django logs to INFO level
+            "level": "INFO",  
             "propagate": True,
         },
-        # Specific Django request logging
         "django.request": {
             "handlers": ["console", "db_handler"],
-            "level": "WARNING",  # Log only warnings or higher
+            "level": "INFO", 
             "propagate": False,
         },
-        # Custom logger for your app
         "languagetutor.custom": {
             "handlers": ["console", "db_handler"],
-            "level": "DEBUG",  # Keep DEBUG logs for your app
-            "propagate": False,
-        },
-        # CSRF-specific logging
-        "django.security.csrf": {
-            "handlers": ["console"],
-            "level": "DEBUG",  # Enable detailed CSRF logs
+            "level": "INFO",  
             "propagate": False,
         },
     },
 }
 
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',  # Change host/port as needed
+        'LOCATION': 'redis://127.0.0.1:6379/1', 
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         }
     }
 }
-
-
-
 
 ADMINS = [
     ('Kerstin Bachmann', 'languagetutorAPP@web.de')

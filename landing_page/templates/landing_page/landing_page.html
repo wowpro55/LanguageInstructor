@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page</title>
+    <link rel="stylesheet" href="{% static 'landing_page/style.css' %}">
+</head>
+<body>
+    <div class="settings-container">
+        <h1>Configure Your Chat Settings</h1>
+        <form id="settingsForm">
+            {% csrf_token %}
+            <div class="settings-group">
+                <label for="difficulty">Difficulty:</label>
+                <select id="difficulty" name="difficulty">
+                    <option value="" disabled selected>-- Select Difficulty --</option>
+                    {% for difficulty in difficulties %}
+                        <option value="{{ difficulty.ID }}">{{ difficulty.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="scenario">Scenario:</label>
+                <select id="scenario" name="scenario">
+                    <option value="" disabled selected>-- Select Scenario --</option>
+                    {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}">{{ scenario.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="settings-group">
+                <label for="persona">Persona:</label>
+                <select id="persona" name="persona">
+                    <option value="" disabled selected>-- Select Persona --</option>
+                    {% for persona in personas %}
+                        <option value="{{ persona.id }}">{{ persona.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit">Save Settings</button>
+        </form>
+    </div>
+    <script>
+ document.getElementById("settingsForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const difficulty = document.getElementById("difficulty").value;
+    console.log("Selected difficulty:", difficulty);
+
+    if (!difficulty) {
+        alert("Please select a difficulty level."); 
+        return;
+    }
+
+    const scenario = document.getElementById("scenario").value;
+    const persona = document.getElementById("persona").value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    console.log("Form data being sent:", {
+        difficulty_id: difficulty,
+        scenario_id: scenario,
+        persona_id: persona,
+    });
+
+    const response = await fetch("{% url 'landing_page' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken
+        },
+        body: JSON.stringify({
+            difficulty_id: difficulty,
+            scenario_id: scenario,
+            persona_id: persona
+        })
+    });
+
+    if (response.ok) {
+        window.location.href = "{% url 'chat' %}";
+    } else {
+        const errorData = await response.json();
+        console.error("Failed to submit settings:", errorData);
+        alert("Error: " + errorData.error);
+    }
+});
+    </script>
+</body>
+</html>
